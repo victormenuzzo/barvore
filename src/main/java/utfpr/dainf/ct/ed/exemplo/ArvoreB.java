@@ -102,7 +102,19 @@ public class ArvoreB<K extends Comparable<? super K>> {
      * @return O resultado da busca ou {@code null}
      */
     protected ResultadoBusca busca(NoArvoreB<K> x, K k) {
-        throw new RuntimeException("Não implementado");
+        int i = 0;
+        while(i<=getGrauMin() && k.compareTo(x.getChave(i))>0)
+            i++;
+        if(i<=x.getNumChaves() && k.compareTo(x.getChave(i))==0)
+            return(new ResultadoBusca(x,i));
+        if(x.isFolha())
+            return null;
+        else {
+            leituraNo(x.getFilho(i));
+            return busca(x.getFilho(i), k);
+        }
+            
+        
     }
     
     /**
@@ -122,8 +134,38 @@ public class ArvoreB<K extends Comparable<? super K>> {
      * @param y O filho cheio
      */
     protected void divideFilho(NoArvoreB<K> x, int i, NoArvoreB<K> y) {
-        throw new RuntimeException("Não implementado");
-    }
+        NoArvoreB z = alocaNo();
+        z.setFolha(y.isFolha());
+        z.setNumChaves(getGrauMin()-1);
+        
+        //# copia as chaves de y para z
+        for(int j=0; j < getGrauMin()-1; j++)
+            z.setChave(y.getChave(j+getGrauMin()), j);
+        
+        //# se y não é folha, copia os ponteiros
+        //# de y para z
+        if(!y.isFolha()) {
+            for(int j = 0; j < getGrauMin(); j++)
+                z.setFilho(y.getFilho(j+getGrauMin()), j);
+        }
+        y.setNumChaves(getGrauMin()-1);
+        
+        //# insere o ponteiro para z
+        //# nos ponteiros de x
+        for(int j = x.getNumChaves(); j>i; j--)
+            x.setFilho(x.getFilho(j), j+1);
+        x.setFilho(z, i+1);
+        
+        //# insere a chave central de y em x
+        for(int j = x.getNumChaves(); j > i; j--)
+            x.setChave(x.getChave(j-1), j);
+        x.setChave(y.getChave(getGrauMin()-1), i);
+        x.setNumChaves(x.getNumChaves()+1);
+        
+        escritaNo(y);
+        escritaNo(z);
+        escritaNo(x);
+   }
     
     /**
      * Insere uma nova chave em um nó não cheio.
@@ -132,7 +174,26 @@ public class ArvoreB<K extends Comparable<? super K>> {
      * @param k A chave a ser inserida no nó
      */
     protected void insereNaoCheio(NoArvoreB<K> x, K k) {
-        throw new RuntimeException("Não implementado");
+        int i = x.getNumChaves();
+        if(x.isFolha()) {
+            while(i>=1 && k.compareTo(x.getChave(i-1))<0) {
+                x.setChave(x.getChave(i-1), i);
+                i--;
+            }
+            x.setChave(k, i);
+            x.setNumChaves(x.getNumChaves()+1);
+            escritaNo(x);
+        }else {
+            while(i>=1 && k.compareTo(x.getChave(i-1))<0)
+                i--;
+            //i++;
+            leituraNo(x.getFilho(i));
+            if(x.getFilho(i).getNumChaves()==2*getGrauMin()-1)
+                divideFilho(x, i, x.getFilho(i));
+//            if(k.compareTo(x.getChave(i))>0)
+//                i++;
+            insereNaoCheio(x.getFilho(i), k);
+        }
     }
     
     /**
@@ -140,7 +201,18 @@ public class ArvoreB<K extends Comparable<? super K>> {
      * @param k A chave a ser inserida
      */
     public void insere(K k) {
-        throw new RuntimeException("Não implementado");
+        NoArvoreB r = getRaiz();
+        if(r.getNumChaves() == 2*getGrauMin()-1) {
+            NoArvoreB s = alocaNo();
+            this.raiz = s;
+            s.setFolha(false);
+            s.setNumChaves(0);
+            s.setFilho(r, 0);
+            divideFilho(s, 0, r);
+            insereNaoCheio(s, k);
+        }else {
+            insereNaoCheio(r, k);
+        }
     }
     
     /**
